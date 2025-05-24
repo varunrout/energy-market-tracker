@@ -1,0 +1,66 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+env/
+.venv/
+
+# Environment Variables
+.env
+.env.*
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite3
+
+# OS specific files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor/IDE specific
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Package specific caches
+__pycache__/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Distribution / packaging
+.Python
