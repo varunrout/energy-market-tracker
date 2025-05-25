@@ -64,3 +64,4 @@ htmlcov/
 
 # Distribution / packaging
 .Python
+.streamlit/config.toml
