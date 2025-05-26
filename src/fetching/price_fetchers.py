@@ -2,7 +2,7 @@ import os
 import requests
 import pandas as pd
 from datetime import datetime, timedelta
-from typing import Optional, Dict, List, Any
+from typing import Optional, Dict, List, Any, Tuple
 
 # Import configurations from the central config module
 from .. import config
@@ -207,16 +207,17 @@ def fetch_nord_pool_prices(date: datetime = None) -> pd.DataFrame:
         return pd.DataFrame(columns=["date", "price_€/MWh"])
 
 
-def get_day_ahead_prices(date: datetime = None) -> pd.DataFrame:
+def get_day_ahead_prices(date: datetime = None) -> Tuple[pd.DataFrame, str]:
     """
     Smart wrapper that fetches data from multiple sources based on availability.
     Falls back to alternative sources if the primary source fails.
+    Returns a tuple containing the DataFrame and the name of the source.
     """
     date = date or datetime.utcnow()
     
     if config.DATA_SOURCE.lower() == "mock":
         print("Using mock data (explicitly configured)")
-        return generate_mock_price_data(date)
+        return generate_mock_price_data(date), "mock"
     
     sources_config_map = {
         "entsoe": (fetch_day_ahead_prices, config.ENTSOE_API_KEY),
@@ -240,21 +241,21 @@ def get_day_ahead_prices(date: datetime = None) -> pd.DataFrame:
                     print(f"Nordpool API key not set, but attempting as it might be a public endpoint.")
                     active_sources_to_try.append((src_name.upper(), fetch_func))
                 else:
-                    print(f"API Key for {src_name} is not configured. Skipping.")
+                    print(f"API Key for {src_name.upper()} is not configured. Skipping {src_name.upper()} in '{config.DATA_SOURCE}' mode.")
             else:
                 print(f"Warning: Source '{src_name}' in PREFERRED_DATA_SOURCES is not a known source.")
 
     elif config.DATA_SOURCE.lower() in sources_config_map:
         src_name = config.DATA_SOURCE.lower()
         fetch_func, api_key_val = sources_config_map[src_name]
-        if api_key_val or (src_name == "nordpool" and not api_key_val) : # Check if API key is configured or it's Nordpool without key
+        if api_key_val or (src_name == "nordpool" and not api_key_val) : # Check if api key is configured or it's Nordpool without key
             active_sources_to_try.append((src_name.upper(), fetch_func))
         else:
-            print(f"API Key for the specified source {src_name} is not configured. Cannot fetch.")
+            print(f"API Key for the specified source {src_name.upper()} is not configured. Cannot fetch from {src_name.upper()}.")
     
     if not active_sources_to_try:
-        print("No valid data sources configured or specified source key missing, using mock data")
-        return generate_mock_price_data(date)
+        print("No valid data sources to attempt based on configuration (e.g., missing API key for specified source or all preferred sources). Using mock data.")
+        return generate_mock_price_data(date), "mock"
     
     errors = []
     for source_name, fetch_function in active_sources_to_try:
@@ -263,17 +264,23 @@ def get_day_ahead_prices(date: datetime = None) -> pd.DataFrame:
             df = fetch_function(date)
             if not df.empty:
                 print(f"Successfully fetched data from {source_name}")
-                return df
+                return df, source_name
             else:
-                print(f"No data returned from {source_name} for the given date.")
+                message = f"No data returned from {source_name} for the given date."
+                print(message)
+                errors.append(message)
         except Exception as e:
             error_message = f"Error fetching from {source_name}: {e}"
             print(error_message)
             errors.append(error_message)
     
-    print(f"All attempted data sources failed or returned no data:\n" + "\n".join(errors))
-    print("Falling back to mock data")
-    return generate_mock_price_data(date)
+    print(f"All attempted data sources in the current strategy failed or returned no data.")
+    if errors:
+        print("Errors encountered:")
+        for err in errors:
+            print(f"- {err}")
+    print("Falling back to mock data.")
+    return generate_mock_price_data(date), "mock"
 
 
 def fetch_elexon_average_system_prices(from_date_str: str, to_date_str: str) -> Optional[Dict[str, Any]]:

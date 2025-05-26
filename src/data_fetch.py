@@ -27,10 +27,11 @@ if __name__ == "__main__":
     # Example 1: Fetch day-ahead prices using the smart wrapper
     print("\nFetching day-ahead prices (using get_day_ahead_prices smart wrapper)...")
     # Fetches for today by default, can pass specific date: get_day_ahead_prices(datetime(2023,1,1))
-    today_prices_df = get_day_ahead_prices() 
+    today_prices_df, source_name = get_day_ahead_prices() 
     
     if not today_prices_df.empty:
-        print("\nSuccessfully fetched day-ahead prices:")
+        today_prices_df['source'] = source_name # Add source column
+        print(f"\nSuccessfully fetched day-ahead prices from {source_name}:")
         print(today_prices_df.head())
         
         # Save the fetched prices (uses DEFAULT_SAVE_PATH from config if path not specified)
@@ -56,7 +57,7 @@ if __name__ == "__main__":
         else:
             print("\nPeak to Off-Peak Price Ratio: Could not be calculated.")
     else:
-        print("\nCould not fetch day-ahead prices using any source or mock data.")
+        print(f"\nCould not fetch day-ahead prices using any source. Fallback source: {source_name}.")
 
     # Example 2: Fetch ELEXON average system prices (if API key is set)
     # This function directly uses os.getenv("ELEXON_API_KEY")
@@ -86,7 +87,7 @@ if __name__ == "__main__":
     # print("\nFetching historical prices for last 2 days...")
     # end_hist_date = datetime.utcnow() - timedelta(days=1)
     # start_hist_date = end_hist_date - timedelta(days=1) # Fetch 2 days of data
-    # historical_df = fetch_historical_prices(start_hist_date, end_hist_date)
+    # historical_df = fetch_historical_prices(start_hist_date, end_hist_date) # historical_df will now have 'source' column
     # if not historical_df.empty:
     #     print("\nFetched historical data (first 5 rows):")
     #     print(historical_df.head())

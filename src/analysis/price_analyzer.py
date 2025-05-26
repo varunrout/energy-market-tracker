@@ -2,7 +2,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 from typing import Optional
 
-from ..fetching.price_fetchers import fetch_day_ahead_prices # Keep for fetch_historical_prices default
+from ..fetching.price_fetchers import get_day_ahead_prices # Changed from fetch_day_ahead_prices to get_day_ahead_prices for clarity
 from .. import config
 
 
@@ -81,9 +81,11 @@ def calculate_peak_off_peak_ratio(df: pd.DataFrame) -> float:
     return peak_price_mean / off_peak_price_mean if off_peak_price_mean != 0 else float('inf') # or nan
 
 def fetch_historical_prices(start_date: datetime, end_date: datetime, 
-                            fetch_function=fetch_day_ahead_prices) -> pd.DataFrame:
+                            fetch_function=get_day_ahead_prices) -> pd.DataFrame: # Default to get_day_ahead_prices
     """
     Fetch historical price data between two dates using the provided fetch_function.
+    The fetch_function is expected to return a tuple (DataFrame, source_name).
+    The returned DataFrame will include a 'source' column.
     """
     all_data = []
     current_date = start_date
@@ -91,20 +93,25 @@ def fetch_historical_prices(start_date: datetime, end_date: datetime,
     while current_date <= end_date:
         try:
             print(f"Fetching historical data for {current_date.strftime('%Y-%m-%d')}")
-            # Using the imported fetch_day_ahead_prices by default
-            df = fetch_function(date=current_date) 
-            if not df.empty:
-                all_data.append(df)
+            # fetch_function (e.g., get_day_ahead_prices) now returns (df, source_name)
+            df_daily, source_name = fetch_function(date=current_date) 
+            if not df_daily.empty:
+                df_daily['source'] = source_name # Add source column
+                all_data.append(df_daily)
             else:
-                print(f"No data returned for {current_date.strftime('%Y-%m-%d')}")
+                print(f"No data returned for {current_date.strftime('%Y-%m-%d')} from source {source_name}")
         except Exception as e:
             print(f"Error fetching historical data for {current_date.strftime('%Y-%m-%d')}: {e}")
         
         current_date += timedelta(days=1)
     
     if all_data:
+        # Ensure 'source' column exists if some fetches failed to add it (though logic above should prevent this)
+        # Concatenation will handle it by adding NaNs if a df is missing the column,
+        # but it's better to ensure all df_daily have it.
         return pd.concat(all_data, ignore_index=True)
-    return pd.DataFrame(columns=["date", "price_€/MWh"]) # Ensure consistent empty DataFrame
+    # Ensure consistent empty DataFrame with 'source' column if no data fetched
+    return pd.DataFrame(columns=["date", "price_€/MWh", "source"])
 
 def analyze_seasonal_patterns(df: pd.DataFrame) -> dict:
     """
