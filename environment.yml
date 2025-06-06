@@ -1,0 +1,25 @@
+name: emt
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pandas
+  - requests
+  - streamlit
+  - python-dotenv
+  - pip
+  - numpy
+  - scipy
+  - matplotlib
+  - scikit-learn
+  - statsmodels
+  - lightgbm
+  - xgboost
+  - tslearn
+  - arch
+  - hmmlearn
+  - pip:
+      - prophet
+      - pymc3
+      - causalimpact
