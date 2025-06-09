@@ -376,8 +376,12 @@ class ElexonApiClient:
         """
         Internal helper to do a GET at self.base_url + path, with query params=params
         and header {"apiKey": self.api_key}. Returns DataFrame from JSON payload.
-        - If the JSON response is a dict containing "data", extract that.
-        - If the JSON response is a list, treat it directly as the data list.
+        
+        Handles multiple response formats:
+        - List of data objects
+        - Dict with 'data' key containing a list
+        - Dict with 'data' key containing a dict
+        - Dict without 'data' key (treated as a single record)
         """
         url = f"{self.base_url}{path}"
         headers = {"apiKey": self.api_key}
@@ -385,29 +389,55 @@ class ElexonApiClient:
             response = requests.get(url, headers=headers, params=params, timeout=30)
             response.raise_for_status()
             payload = response.json()
-
-            # If payload is a list, treat that as the data directly
+            
+            # Case 1: Direct list of data objects
             if isinstance(payload, list):
-                data = payload
-
-            # If payload is a dict, look for "data" key
+                return pd.DataFrame(payload)
+            
+            # Case 2: Dict response
             elif isinstance(payload, dict):
-                data = payload.get("data", [])
-                # Some endpoints may nest further; but we assume "data" is correct
-
+                # Case 2a: Has 'data' key containing list
+                if "data" in payload and isinstance(payload["data"], list):
+                    return pd.DataFrame(payload["data"])
+                    
+                # Case 2b: Has 'data' key containing dict
+                elif "data" in payload and isinstance(payload["data"], dict):
+                    data_value = payload["data"]
+                    # Check if the dict contains lists we should extract
+                    if any(isinstance(v, list) for v in data_value.values()):
+                        for key, value in data_value.items():
+                            if isinstance(value, list) and len(value) > 0:
+                                # Found a list, assume this is our data
+                                return pd.DataFrame(value)
+                        # If no lists with data found, return the dict as a single row
+                        return pd.DataFrame([data_value])
+                    else:
+                        # Simple dict data, return as single row
+                        return pd.DataFrame([data_value])
+                    
+                # Case 2c: Dict without 'data' key
+                else:
+                    # Filter out common metadata keys if present
+                    metadata_keys = ["apiVersion", "batchSize", "totalRecords", "status", 
+                                    "serviceType", "elapsedTime"]
+                    
+                    # If it has typical data fields, treat as a data record
+                    if any(k for k in payload.keys() if k not in metadata_keys):
+                        return pd.DataFrame([payload])
+                    else:
+                        # If it's just metadata, return empty dataframe
+                        return pd.DataFrame()
+            
+            # Case 3: Unexpected format
             else:
-                data = []
-
-            # Build DataFrame
-            if isinstance(data, list):
-                return pd.DataFrame(data)
-            elif isinstance(data, dict):
-                return pd.DataFrame([data])
-            else:
+                print(f"Warning: Unexpected response format from {url}")
                 return pd.DataFrame()
-
+                
         except requests.RequestException as e:
             print(f"Error fetching {url} with params={params}: {e}")
+            return pd.DataFrame()
+        except ValueError as e:
+            print(f"Error parsing JSON from {url}: {e}")
             return pd.DataFrame()
 
     def call_endpoint(
