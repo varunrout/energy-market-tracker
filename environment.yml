@@ -4,22 +4,22 @@ channels:
   - defaults
 dependencies:
   - python=3.10
-  - pandas
-  - requests
-  - streamlit
-  - python-dotenv
+  - pandas>=2.2
+  - requests>=2.31
+  - streamlit>=1.35
+  - python-dotenv>=1.0
+  - numpy>=1.26
+  - scipy>=1.13
+  - matplotlib>=3.9
+  - scikit-learn>=1.5
+  - statsmodels>=0.14
+  - lightgbm>=4.3
+  - xgboost>=2.0
+  - tslearn>=0.6
+  - arch>=6.3
+  - hmmlearn>=0.3
   - pip
-  - numpy
-  - scipy
-  - matplotlib
-  - scikit-learn
-  - statsmodels
-  - lightgbm
-  - xgboost
-  - tslearn
-  - arch
-  - hmmlearn
   - pip:
-      - prophet
-      - pymc3
-      - causalimpact
+      - prophet>=1.1
+      - pymc3>=3.11
+      - causalimpact>=0.4
