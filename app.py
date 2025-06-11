@@ -2,6 +2,7 @@
 
 import streamlit as st
 from src.categories.data_explorer import show as show_data_explorer
+from src.categories.volatility_risk import show as show_volatility_risk
 
 st.set_page_config(page_title="Electricity Dashboard", layout="wide")
 
@@ -14,5 +15,7 @@ menu = st.sidebar.radio(
 
 if menu == "Data Explorer":
     show_data_explorer()
+elif menu == "Volatility & Risk":
+    show_volatility_risk()
 else:
     st.info("Other categories will be implemented next.")
